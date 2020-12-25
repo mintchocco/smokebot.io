@@ -29,16 +29,17 @@ canvas {
 }
 </style>
 </head>
-<body>
-    <script import="https://unpkg.co/gsap@3/dist/gsap.min.js">
-           
+<body> 
+	
+	<script>
+		
 import * as $ from '//unpkg.com/three@0.123.0/build/three.module.js'
 import { OrbitControls } from '//unpkg.com/three@0.123.0/examples/jsm/controls/OrbitControls.js'
 import { EffectComposer } from '//unpkg.com/three@0.123.0/examples/jsm/postprocessing/EffectComposer'
 import { RenderPass } from '//unpkg.com/three@0.123.0/examples/jsm/postprocessing/RenderPass'
 import { UnrealBloomPass } from '//unpkg.com/three@0.123.0/examples/jsm/postprocessing/UnrealBloomPass'
     
-<script>
+
 
 const renderer = new $.WebGLRenderer({ antialias: true });
 const scene = new $.Scene();
