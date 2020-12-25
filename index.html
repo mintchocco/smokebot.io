@@ -22,109 +22,217 @@
 	<meta name="msapplication-TileImage" content="/frogicon-144.png">
 	<meta name="msapplication-config" content="/browserconfig.xml">
 <style>
+body {
+  background : #000;
+}
+
 canvas {
-    width: 100%;
-    height: 100vh;
-    display: block;
+  position : absolute;
+  top      : 0px;
+  left     : 0px;
+}
+
+h1 {
+  font-family : Verdana;
+  font-size   : 20px;
+  font-weight : bold;
+  color       : #FFF;
+}
+
+#sliders {
+  position : absolute;
+  top      : 0px;
+  right    : 0px;
+  bottom   : 20px;
+  width    : 24%;
+}
+
+#speeds {
+  position : absolute;
+  top      : 0;
+  right    : 25%;
+  bottom   : 20px;
+  width    : 24%;
+}
+
+#sliders > div {
+  position : relative;
+  height   : 100%;
+  float    : left;
+}
+
+.ui-slider {
+  margin : 15px;
+  float  : left;
+  height : 80%;
+}
+
+input {
+  position : absolute;
+  bottom   : 3px;
+  left     : 14px
 }
 </style>
 </head>
 <body> 
 	
-	<script>
-		
-import * as $ from '//unpkg.com/three@0.123.0/build/three.module.js'
-import { OrbitControls } from '//unpkg.com/three@0.123.0/examples/jsm/controls/OrbitControls.js'
-import { EffectComposer } from '//unpkg.com/three@0.123.0/examples/jsm/postprocessing/EffectComposer'
-import { RenderPass } from '//unpkg.com/three@0.123.0/examples/jsm/postprocessing/RenderPass'
-import { UnrealBloomPass } from '//unpkg.com/three@0.123.0/examples/jsm/postprocessing/UnrealBloomPass'
+	<script>var  radii = [ 1, 1/3, 1/3, 1/3, 1/3, 1/3, 1/3 ]
+  , speeds = [ -Math.PI/300, 3*Math.PI/300, 9*-Math.PI/300, 27*Math.PI/300, 81*-Math.PI/300, 81*3*Math.PI/300 ]
+  , toDraw = [ 0, 0, 0, 0, 0, 1 ];
+
+$(function() {
+  $( '#sliders div' ).each( function( ix, div ){
+    function onChange( ev, ui ){ radii[ ix + 1 ] = ui.value / 100; }
+
+    $( '<div></div>' ).appendTo( div ).slider({
+      orientation : 'vertical'
+      ,   animate : true
+      ,     value : 100 * radii[ ix + 1 ]
+      ,     slide : onChange
+      ,    change : onChange
+      ,      step : .01
+    });
     
-
-
-const renderer = new $.WebGLRenderer({ antialias: true });
-const scene = new $.Scene();
-const camera = new $.PerspectiveCamera(75, 2, .01, 1000);
-const controls = new OrbitControls(camera, renderer.domElement);
-const composer = new EffectComposer(renderer);
-const bufSize = new $.Vector2();
-window.addEventListener('resize', () => {
-    const { clientWidth, clientHeight } = renderer.domElement;
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(clientWidth, clientHeight, false);
-    camera.aspect = clientWidth / clientHeight;
-    camera.updateProjectionMatrix();
-    composer.setPixelRatio(window.devicePixelRatio);
-    composer.setSize(clientWidth, clientHeight);
-    renderer.getDrawingBufferSize(bufSize);
-});
-document.body.prepend(renderer.domElement);
-window.dispatchEvent(new Event('resize'));
-renderer.setAnimationLoop((t) => {
-    composer.render();
-    controls.update();
-    animate(t);
+    $( div ).find( 'input' ).on( 'change', function(){
+      toDraw[ ix ] = !!this.checked;
+    });
+  });
+  
+  $( '#speeds div' ).each( function( ix, div ){
+    function onSpeed( ev, ui ){
+      speeds[ ix ] = 5* ( ( ui.value / 100 ) - .5 ); 
+    }
+    
+    $( div ).slider({
+      orientation : 'vertical'
+      ,   animate : true
+      ,     value : 50 + ( 100 * speeds[ ix ] / 5 )
+      ,     slide : onSpeed
+      ,    change : onSpeed
+      ,      step : .01
+    });
+  });
 });
 
-// ----
-// Main
-// ---- 
+var fractal = document.getElementById( 'fractal' )
+  , circles = document.getElementById( 'circles' )
+  ,    fCtx = fractal.getContext( '2d' )
+  ,    cCtx = circles.getContext( '2d' )
+  ,   width = circles.width
+  ,  height = circles.height
+  ,  rotate = [ 0, 0, 0, 0, 0, 0, 0 ]
+  ,      pX = 0
+  ,      pY = 0
+  ,  rCount = 0
+  ,       r = 255
+  ,       g = 255
+  ,       b = 0
+  ,      rD = -5
+  ,      gD = -5
+  ,      bD = 5
+;
 
-$.ShaderChunk.my_map_fragment = `
-#ifdef USE_MAP
-    float t = t * 0.001;
-    vec2 uv = vUv * vec2(2.0, 1.0) + vec2(-0.9);
-    vec4 A = (
-        texture2D(map, uv * 1.0 + vec2(t*0.1, t*0.3))
-        + texture2D(map, uv * 2.0 + vec2(t*-0.1, t*0.4))
-        + texture2D(map, uv * 3.0 + vec2(t*-0.1, t*0.5))
-        + texture2D(map, uv * 4.0 + vec2(t*0.1, t*0.6))
-    ) / 4.0;
-    vec4 texelColor = A * A;
-    texelColor = mapTexelToLinear(texelColor);
-    diffuseColor *= texelColor;
-#endif
-`;
+fCtx.strokeStyle = '#99FFFF';
+fCtx.fillStyle   = 'rgba( 0, 0, 0, .05 )';
+fCtx.lineWidth   = 2;
 
-const IMGURL = 'https://images.unsplash.com/photo-1570884745218-1275bb172d97?ixid=MXwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHw%3D&ixlib=rb-1.2.1&auto=format&fit=crop&w=1267&q=80';
+cCtx.strokeStyle = '#FFFFFF';
+cCtx.lineWidth   = 2;
 
-camera.position.set(0, 0, 1);
+window.requestAnimFrame = (function(){
+  return  window.requestAnimationFrame       ||
+          window.webkitRequestAnimationFrame ||
+          window.mozRequestAnimationFrame    ||
+          function( callback ){
+            window.setTimeout(callback, 1000 / 60);
+          };
+})();
 
-const tex = new $.TextureLoader().load(IMGURL);
-tex.wrapS = tex.wrapT = $.MirroredRepeatWrapping;
-const geom = new $.SphereBufferGeometry(10, 10, 60);
-const mat = new $.ShaderMaterial({
-    uniforms: $.UniformsUtils.merge([ // deep clone
-        $.ShaderLib.basic.uniforms,
-        { t: 0 }
-    ]),
-    vertexShader: $.ShaderLib.basic.vertexShader,
-    fragmentShader: `
-    uniform float t;
-    ` + $.ShaderLib.basic.fragmentShader.replace(
-        '#include <map_fragment>',
-        '#include <my_map_fragment>'
-    ),
-    side: $.BackSide
-});
-mat.map = mat.uniforms.map.value = tex;
-const mesh = new $.Mesh(geom, mat);
-mesh.rotation.x = Math.PI / 4;
-scene.add(mesh);
+(function animloop(){
+  requestAnimFrame(animloop);
+  render();
+})();
 
-//// Pp
+function render(){
+  var x = width  / 2
+    , y = height / 2
+    , r = Math.min( width, height ) / 2
+    , r2
+    ;
 
-const renderPass = new RenderPass(scene, camera);
-const bloomPass = new UnrealBloomPass(bufSize, 0.5, 0.5, 0.25);
-composer.addPass(renderPass);
-composer.addPass(bloomPass);
+  // change stroke color
+  b += bD;
+  if( !b || ( 255 === b ) ){
+    bD *= -1;
+    g += gD;
+    if( !g || ( 255 === g ) ){
+      gD *= -1;
+      r += rD;
+      if( !r || ( 255 === r ) ){
+        rD *= -1;
+      }
+    }
+  }
+  fCtx.strokeStyle = '#' + ( ( 1<<24 ) + ( r<<16 ) + ( g<<8 ) + b ).toString(16).substr(1);
 
-//// Anim
+  // partially erase the line
+  if( !( ++rCount % 20 ) ){
+    fCtx.fillRect( 0, 0, width, height );
+  }
+  
+  // clear the circles
+  cCtx.clearRect( 0, 0, width, height );
 
-function animate(t /*sec*/) {
-    mat.uniforms.t.value = t;
+  // draw one circle
+  function drawCircle( ix ){
+    cCtx.beginPath();
+    cCtx.arc( x, y, r, 0, 2 * Math.PI, false );
+    cCtx.stroke();
+    
+    if( toDraw[ ix - 1 ] ){
+      fCtx.beginPath();
+      if( pX || pY ){
+        fCtx.moveTo( pX, pY );
+        fCtx.lineTo( x, y );
+        fCtx.stroke();
+      }
+      pX = x;
+      pY = y;
+    }
+  }
+
+  // draw the circles
+  for( var i=0, l=rotate.length; i<l; i++ ){
+    drawCircle( i );
+    r2 = r * radii[i+1]; // shrink each circle
+    rotate[ i ] += .1 * speeds[ i ] * 10;
+    x += ( r - r2 ) * Math.cos( rotate[ i ] );
+    y += ( r - r2 ) * Math.sin( rotate[ i ] );
+    r = r2;
+  }
 }
-
-gsap.timeline({ repeat: -1 }).to(mesh.rotation, {y: Math.PI *2, duration: 60});
 </script>
+	<canvas id="fractal" width="400" height="400"></canvas>
+<canvas id="circles" width="400" height="400"></canvas>
+
+<div id="sliders">
+  <h1>Sizes</h1>
+  <div id="slider1"><input type="checkbox" id="cb1"></input></div>
+  <div id="slider2"><input type="checkbox" id="cb2"></input></div>
+  <div id="slider3"><input type="checkbox" id="cb3"></input></div>
+  <div id="slider4"><input type="checkbox" id="cb4"></input></div>
+  <div id="slider5"><input type="checkbox" id="cb5"></input></div>
+  <div id="slider6"><input type="checkbox" id="cb6" checked></input></div>
+</div>
+
+<div id="speeds">
+  <h1>Speeds</h1>
+  <div id="speed1"></div>
+  <div id="speed2"></div>
+  <div id="speed3"></div>
+  <div id="speed4"></div>
+  <div id="speed5"></div>
+  <div id="speed6"></div>
+</div>
 </body>
 </html>
